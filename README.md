@@ -106,6 +106,31 @@ Pi LED ────────────── MQTT :1883 ──────�
 
 MQTT reste exposé sur l'hôte (`MQTT_PUBLIC_PORT`, défaut 1883) : ce n'est **pas** routé via Caddy HTTP.
 
+## Back-office Filament (`/admin`)
+
+Accessible uniquement aux users `is_admin=true` (compte seed : `admin@led-display.local` / `password`).
+
+| Section | Contenu |
+|---------|---------|
+| Dashboard | Stats devices (online / offline / never seen) + tableau de statut |
+| Dispositifs | CRUD + actions Texte / Couleur / Clear (MQTT) + permissions |
+| Utilisateurs | CRUD + flag admin |
+| Tokens MCP | Créer / révoquer des personal access tokens Passport |
+| Logs | Historique des commandes d'affichage |
+
+Après déploiement image :
+
+```bash
+docker compose exec app php artisan migrate --force
+# Se connecter sur https://domaine/admin
+```
+
+Si la création de token échoue, créer un client Passport personal access :
+
+```bash
+docker compose exec app php artisan passport:client --personal --name="LED Personal" --no-interaction
+```
+
 Compte démo (seeder) :
 
 - `admin@led-display.local` / `password` (admin)

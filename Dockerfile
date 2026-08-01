@@ -3,9 +3,9 @@
 FROM php:8.3-fpm-bookworm AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip curl libpq-dev libzip-dev libpng-dev libonig-dev \
+        git unzip curl libpq-dev libzip-dev libpng-dev libonig-dev libicu-dev \
         $PHPIZE_DEPS \
-    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql mbstring zip bcmath pcntl \
+    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql mbstring zip bcmath pcntl intl \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
@@ -34,7 +34,8 @@ RUN composer dump-autoload --optimize --classmap-authoritative --no-dev \
     && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
     && php -r "file_exists('.env') || copy('.env.example', '.env');" \
     && php artisan key:generate --force --no-interaction \
-    && php artisan package:discover --ansi
+    && php artisan package:discover --ansi \
+    && php artisan filament:assets --no-interaction
 
 FROM base AS production
 

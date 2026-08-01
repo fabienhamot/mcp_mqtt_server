@@ -2,11 +2,18 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "fabienhamot/mcp_mqtt_server",
     "type": "project",
-    "description": "Serveur central Laravel MCP → MQTT pour écrans LED domotiques.",
-    "keywords": ["laravel", "mcp", "mqtt", "led", "domotique"],
+    "description": "Serveur central Laravel MCP \u2192 MQTT pour \u00e9crans LED domotiques.",
+    "keywords": [
+        "laravel",
+        "mcp",
+        "mqtt",
+        "led",
+        "domotique"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "filament/filament": "^3.3",
         "laravel/framework": "^11.31",
         "laravel/mcp": "^0.9.1",
         "laravel/passport": "^13.0",
@@ -37,7 +44,8 @@
     "scripts": {
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

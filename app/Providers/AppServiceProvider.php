@@ -20,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
             return view('mcp.authorize', $parameters);
         });
 
+        Passport::tokensCan([
+            'mcp:use' => 'Utiliser le serveur MCP LED Display',
+        ]);
+
         Passport::tokensExpireIn(now()->addDays(15));
         Passport::refreshTokensExpireIn(now()->addDays(30));
         Passport::personalAccessTokensExpireIn(now()->addMonths(6));
