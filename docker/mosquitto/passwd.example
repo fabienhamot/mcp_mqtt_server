@@ -1,0 +1,8 @@
+# Fichier généré par :
+#   ./docker/mosquitto/generate-passwd.sh ledserver changeme
+# ou :
+#   docker run --rm -v "$PWD/docker/mosquitto:/mosquitto/config" eclipse-mosquitto:2 \
+#     mosquitto_passwd -b -c /mosquitto/config/passwd ledserver changeme
+#
+# Mosquitto refuse de démarrer sans ce fichier si password_file est configuré.
+# Ne versionnez JAMAIS un vrai passwd (déjà dans .gitignore).
