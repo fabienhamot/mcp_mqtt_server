@@ -73,12 +73,13 @@ return [
                     'allow_self_signed_certificate' => env('MQTT_TLS_ALLOW_SELF_SIGNED_CERT', false),
                     'verify_peer' => env('MQTT_TLS_VERIFY_PEER', true),
                     'verify_peer_name' => env('MQTT_TLS_VERIFY_PEER_NAME', true),
-                    'ca_file' => env('MQTT_TLS_CA_FILE'),
-                    'ca_path' => env('MQTT_TLS_CA_PATH'),
-                    'client_certificate_file' => env('MQTT_TLS_CLIENT_CERT_FILE'),
-                    'client_certificate_key_file' => env('MQTT_TLS_CLIENT_CERT_KEY_FILE'),
-                    'client_certificate_key_passphrase' => env('MQTT_TLS_CLIENT_CERT_KEY_PASSPHRASE'),
-                    'alpn' => env('MQTT_TLS_ALPN'),
+                    // Empty string must become null — php-mqtt rejects '' as an invalid CA path.
+                    'ca_file' => env('MQTT_TLS_CA_FILE') ?: null,
+                    'ca_path' => env('MQTT_TLS_CA_PATH') ?: null,
+                    'client_certificate_file' => env('MQTT_TLS_CLIENT_CERT_FILE') ?: null,
+                    'client_certificate_key_file' => env('MQTT_TLS_CLIENT_CERT_KEY_FILE') ?: null,
+                    'client_certificate_key_passphrase' => env('MQTT_TLS_CLIENT_CERT_KEY_PASSPHRASE') ?: null,
+                    'alpn' => env('MQTT_TLS_ALPN') ?: null,
                 ],
 
                 // Credentials used for authentication and authorization.

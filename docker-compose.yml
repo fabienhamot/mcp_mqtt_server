@@ -25,6 +25,7 @@ services:
       # Derrière Caddy (TLS terminé en amont)
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
     volumes:
+      - ./.env:/var/www/html/.env:ro
       - app_storage:/var/www/html/storage/app
       - app_logs:/var/www/html/storage/logs
       - public_assets:/shared/public
@@ -95,6 +96,8 @@ services:
       MQTT_HOST: mqtt
       RUN_MIGRATIONS: "false"
       CACHE_CONFIG: "false"
+    volumes:
+      - ./.env:/var/www/html/.env:ro
     depends_on:
       - app
       - mqtt
