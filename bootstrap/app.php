@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Passport /oauth/authorize exige une session web : rediriger vers Filament.
+        $middleware->redirectGuestsTo('/admin/login');
+
         // Derrière Caddy : faire confiance aux en-têtes X-Forwarded-*
         $proxies = env('TRUSTED_PROXIES', '*');
         $middleware->trustProxies(
