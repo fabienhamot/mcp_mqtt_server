@@ -107,6 +107,8 @@ Pi LED ────────────── MQTT :1883 ──────�
 MQTT reste exposé sur l'hôte (`MQTT_PUBLIC_PORT`, défaut 1883) : ce n'est **pas** routé via Caddy HTTP.
 
 > **Assets CSS/JS** : nginx sert `public/` via le volume Docker `public_assets` (sync au démarrage de `app`). Sans ça, Filament apparaît sans styles. Vérifie aussi `APP_URL=https://…` dans `.env`.
+>
+> **Attention VPS / Portainer** : si `compose.yaml` et `docker-compose.yml` coexistent, Compose utilise **`compose.yaml` en priorité**. Garde les deux identiques (le repo versionne les deux) ou n’en garde qu’un.
 
 ## Back-office Filament (`/admin`)
 
