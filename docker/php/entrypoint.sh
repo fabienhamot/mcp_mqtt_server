@@ -23,9 +23,15 @@ if [ -n "${DB_HOST:-}" ]; then
   done
 fi
 
-if [ ! -f storage/oauth-private.key ] && [ -z "${PASSPORT_PRIVATE_KEY:-}" ]; then
-  echo "Generating Passport keys..."
-  php artisan passport:keys --no-interaction || true
+if [ -z "${PASSPORT_PRIVATE_KEY:-}" ]; then
+  if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
+    echo "Generating Passport keys..."
+    php artisan passport:keys --force --no-interaction || true
+  fi
+  if [ -f storage/oauth-private.key ]; then
+    chown www-data:www-data storage/oauth-private.key storage/oauth-public.key 2>/dev/null || true
+    chmod 600 storage/oauth-private.key storage/oauth-public.key 2>/dev/null || true
+  fi
 fi
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
