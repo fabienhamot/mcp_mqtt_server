@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 
@@ -14,6 +15,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Derrière Caddy (HTTPS) : forcer les URLs d'assets en https
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         // Vue d'autorisation OAuth pour les clients MCP.
         // Doc : https://laravel.com/docs/mcp#oauth
         Passport::authorizationView(function (array $parameters) {

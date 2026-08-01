@@ -3,6 +3,13 @@ set -eu
 
 cd /var/www/html
 
+# Exporter public/ vers le volume partagé avec nginx (css/js Filament, etc.)
+if [ -d /shared/public ]; then
+  echo "Syncing public assets for nginx..."
+  rm -rf /shared/public/*
+  cp -a /var/www/html/public/. /shared/public/
+fi
+
 if [ -n "${DB_HOST:-}" ]; then
   echo "Waiting for database ${DB_HOST}:${DB_PORT:-5432}..."
   i=0

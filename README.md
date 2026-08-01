@@ -106,6 +106,8 @@ Pi LED ────────────── MQTT :1883 ──────�
 
 MQTT reste exposé sur l'hôte (`MQTT_PUBLIC_PORT`, défaut 1883) : ce n'est **pas** routé via Caddy HTTP.
 
+> **Assets CSS/JS** : nginx sert `public/` via le volume Docker `public_assets` (sync au démarrage de `app`). Sans ça, Filament apparaît sans styles. Vérifie aussi `APP_URL=https://…` dans `.env`.
+
 ## Back-office Filament (`/admin`)
 
 Accessible uniquement aux users `is_admin=true` (compte seed : `admin@led-display.local` / `password`).
