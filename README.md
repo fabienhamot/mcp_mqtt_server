@@ -117,10 +117,19 @@ Accessible uniquement aux users `is_admin=true` (compte seed : `admin@led-displa
 | Section | Contenu |
 |---------|---------|
 | Dashboard | Stats devices (online / offline / never seen) + tableau de statut |
-| Dispositifs | CRUD + actions Texte / Couleur / Clear (MQTT) + permissions |
+| Dispositifs | CRUD + capabilities JSON + commande générique MQTT + permissions |
 | Utilisateurs | CRUD + flag admin |
 | Tokens MCP | Créer / révoquer des personal access tokens Passport |
-| Logs | Historique des commandes d'affichage |
+| Logs | Historique des commandes |
+
+### Gateway MQTT générique
+
+Chaque device a un catalogue `capabilities.commands` (params + template payload). L'agent MCP :
+
+1. `ListDevices` → `capabilities` / `commands`
+2. `InvokeDeviceCommand(device_id, command, params)` → publish MQTT
+
+Types préremplis : `led_display` (text/image/color/clear), `relay` (power/toggle). Les tools `Display*` restent disponibles pour les écrans.
 
 Après déploiement image :
 

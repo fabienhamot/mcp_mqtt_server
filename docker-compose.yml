@@ -94,6 +94,7 @@ services:
     environment:
       DB_HOST: db
       MQTT_HOST: mqtt
+      MQTT_CLIENT_ID: led-display-listener
       RUN_MIGRATIONS: "false"
       CACHE_CONFIG: "false"
     volumes:

@@ -17,6 +17,14 @@ class DevicePermissionService
      */
     public function assertCan(User $user, Device $device, DisplayAction $action): void
     {
+        $this->assertCanCommand($user, $device, $action->value, displayLegacy: true);
+    }
+
+    /**
+     * @throws RuntimeException
+     */
+    public function assertCanCommand(User $user, Device $device, string $command, bool $displayLegacy = false): void
+    {
         if ($user->is_admin) {
             return;
         }
@@ -33,17 +41,31 @@ class DevicePermissionService
         }
 
         // Status : accessible dès qu'il y a une permission sur le device.
-        if ($action === DisplayAction::Status) {
+        if ($command === DisplayAction::Status->value || $command === 'status') {
+            return;
+        }
+
+        // list n'est pas une commande MQTT
+        if ($command === DisplayAction::List->value) {
             return;
         }
 
         /** @var list<string> $allowed */
         $allowed = $permission->allowed_actions ?? [];
 
-        if (! in_array($action->value, $allowed, true)) {
+        if (! in_array($command, $allowed, true)) {
             throw new RuntimeException(
-                "Permission refusée : action « {$action->value} » non autorisée sur le device #{$device->id}."
+                "Permission refusée : commande « {$command} » non autorisée sur le device #{$device->id}."
             );
+        }
+
+        if (! $displayLegacy) {
+            $known = $device->commandNames();
+            if ($known !== [] && ! in_array($command, $known, true)) {
+                throw new RuntimeException(
+                    "Commande « {$command} » absente des capabilities du device #{$device->id}."
+                );
+            }
         }
     }
 
@@ -52,13 +74,21 @@ class DevicePermissionService
      */
     public function authorizeDevice(User $user, int $deviceId, DisplayAction $action): Device
     {
+        return $this->authorizeCommand($user, $deviceId, $action->value, displayLegacy: true);
+    }
+
+    /**
+     * @throws RuntimeException
+     */
+    public function authorizeCommand(User $user, int $deviceId, string $command, bool $displayLegacy = false): Device
+    {
         $device = Device::query()->find($deviceId);
 
         if ($device === null) {
             throw new RuntimeException("Device #{$deviceId} introuvable.");
         }
 
-        $this->assertCan($user, $device, $action);
+        $this->assertCanCommand($user, $device, $command, $displayLegacy);
 
         return $device;
     }
@@ -80,9 +110,14 @@ class DevicePermissionService
      */
     public function grant(User $user, Device $device, array $allowedActions): DeviceUserPermission
     {
+        $allowedForDevice = $device->commandNames();
+        if ($allowedForDevice === []) {
+            $allowedForDevice = DisplayAction::controllableValues();
+        }
+
         $normalized = array_values(array_unique(array_intersect(
             $allowedActions,
-            DisplayAction::controllableValues()
+            $allowedForDevice
         )));
 
         $permission = DeviceUserPermission::query()->updateOrCreate(

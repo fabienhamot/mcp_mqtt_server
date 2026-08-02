@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Device;
+use App\Support\DeviceCapabilityCatalog;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,7 +23,9 @@ class DeviceFactory extends Factory
         return [
             'name' => 'LED '.$slug,
             'type' => 'led_display',
+            'capabilities' => DeviceCapabilityCatalog::ledDisplay(),
             'mqtt_topic' => 'display/led/'.$slug,
+            'status_topic' => 'display/led/'.$slug.'/status',
             'status' => ['state' => 'idle'],
             'last_seen_at' => null,
         ];

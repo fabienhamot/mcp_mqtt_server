@@ -7,8 +7,10 @@ use App\Filament\Resources\DeviceResource\Pages;
 use App\Filament\Resources\DeviceResource\RelationManagers;
 use App\Models\Device;
 use App\Models\User;
+use App\Services\DeviceCommandService;
 use App\Services\DisplayCommandService;
 use App\Services\DisplayPayload;
+use App\Support\DeviceCapabilityCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -39,16 +41,67 @@ class DeviceResource extends Resource
                     ->label('Nom')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('type')
+                Forms\Components\Select::make('type')
+                    ->label('Type')
+                    ->options([
+                        'led_display' => 'Écran LED',
+                        'relay' => 'Relais',
+                        'generic' => 'Générique',
+                    ])
                     ->default('led_display')
                     ->required()
-                    ->maxLength(100),
+                    ->live()
+                    ->afterStateUpdated(function (?string $state, Forms\Set $set): void {
+                        $caps = match ($state) {
+                            'led_display' => DeviceCapabilityCatalog::ledDisplay(),
+                            'relay' => DeviceCapabilityCatalog::relayExample(),
+                            default => DeviceCapabilityCatalog::empty(),
+                        };
+                        $set('capabilities', json_encode($caps, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                    }),
                 Forms\Components\TextInput::make('mqtt_topic')
-                    ->label('Topic MQTT')
-                    ->helperText('Ex. display/led ou display/led/cuisine')
+                    ->label('Topic MQTT (commandes)')
+                    ->helperText('Ex. display/led/cuisine ou home/salon/relay')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
+                Forms\Components\TextInput::make('status_topic')
+                    ->label('Topic statut (optionnel)')
+                    ->helperText('Par défaut : {mqtt_topic}/status')
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('capabilities')
+                    ->label('Capabilities (JSON)')
+                    ->helperText('Catalogue commands + params + payload templates ({{param}}, {{param?}}, {{param|default}}).')
+                    ->rows(16)
+                    ->columnSpanFull()
+                    ->formatStateUsing(function (mixed $state, ?Device $record): string {
+                        $data = is_array($state) ? $state : ($record?->capabilities ?? $record?->resolvedCapabilities() ?? DeviceCapabilityCatalog::ledDisplay());
+
+                        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    })
+                    ->dehydrateStateUsing(function (?string $state): ?array {
+                        if ($state === null || trim($state) === '') {
+                            return null;
+                        }
+                        $decoded = json_decode($state, true);
+                        if (! is_array($decoded)) {
+                            throw new \InvalidArgumentException('Capabilities JSON invalide.');
+                        }
+
+                        return $decoded;
+                    })
+                    ->rules([
+                        fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                            if (! is_string($value) && ! is_array($value)) {
+                                return;
+                            }
+                            $raw = is_array($value) ? json_encode($value) : $value;
+                            $decoded = json_decode((string) $raw, true);
+                            if (! is_array($decoded)) {
+                                $fail('JSON capabilities invalide.');
+                            }
+                        },
+                    ]),
                 Forms\Components\KeyValue::make('status')
                     ->label('Statut (JSON)')
                     ->nullable()
@@ -68,6 +121,11 @@ class DeviceResource extends Resource
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('type')->badge(),
                 Tables\Columns\TextColumn::make('mqtt_topic')->searchable()->copyable(),
+                Tables\Columns\TextColumn::make('commands')
+                    ->label('Commandes')
+                    ->getStateUsing(fn (Device $record): string => implode(', ', $record->commandNames()) ?: '—')
+                    ->wrap()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('connectivity')
                     ->label('Connexion')
                     ->badge()
@@ -95,9 +153,60 @@ class DeviceResource extends Resource
                 Tables\Filters\SelectFilter::make('type'),
             ])
             ->actions([
+                Tables\Actions\Action::make('invoke')
+                    ->label('Commande')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->form(function (Device $record): array {
+                        $names = $record->commandNames();
+
+                        return [
+                            Forms\Components\Select::make('command')
+                                ->label('Commande')
+                                ->options(collect($names)->mapWithKeys(fn (string $n) => [$n => $n])->all())
+                                ->required()
+                                ->live(),
+                            Forms\Components\Textarea::make('params_json')
+                                ->label('Params (JSON)')
+                                ->helperText('Ex. {"text":"Hello","priority":"normal"} ou {"on":true}')
+                                ->rows(4)
+                                ->default('{}'),
+                        ];
+                    })
+                    ->action(function (Device $record, array $data): void {
+                        /** @var User $user */
+                        $user = auth()->user();
+                        $params = [];
+                        if (! blank($data['params_json'] ?? null)) {
+                            try {
+                                $decoded = json_decode($data['params_json'], true, 512, JSON_THROW_ON_ERROR);
+                                $params = is_array($decoded) ? $decoded : [];
+                            } catch (Throwable $e) {
+                                Notification::make()->title('JSON params invalide')->body($e->getMessage())->danger()->send();
+
+                                return;
+                            }
+                        }
+
+                        try {
+                            $result = app(DeviceCommandService::class)->invoke(
+                                $user,
+                                $record->id,
+                                (string) $data['command'],
+                                $params,
+                            );
+                            Notification::make()
+                                ->title('Commande publiée')
+                                ->body("{$result['command']} → {$result['topic']} (log #{$result['log_id']})")
+                                ->success()
+                                ->send();
+                        } catch (Throwable $e) {
+                            Notification::make()->title('Échec')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
                 Tables\Actions\Action::make('sendText')
                     ->label('Texte')
                     ->icon('heroicon-o-chat-bubble-bottom-center-text')
+                    ->visible(fn (Device $record): bool => in_array('text', $record->commandNames(), true))
                     ->form([
                         Forms\Components\Textarea::make('text')->required()->rows(2),
                         Forms\Components\TextInput::make('duration')->numeric()->minValue(0)->label('Durée (s)'),
@@ -118,6 +227,7 @@ class DeviceResource extends Resource
                 Tables\Actions\Action::make('sendColor')
                     ->label('Couleur')
                     ->icon('heroicon-o-swatch')
+                    ->visible(fn (Device $record): bool => in_array('color', $record->commandNames(), true))
                     ->form([
                         Forms\Components\TextInput::make('color')
                             ->required()
@@ -134,6 +244,7 @@ class DeviceResource extends Resource
                     ->label('Clear')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
+                    ->visible(fn (Device $record): bool => in_array('clear', $record->commandNames(), true))
                     ->requiresConfirmation()
                     ->action(fn (Device $record) => self::sendPayload($record, DisplayPayload::clear())),
                 Tables\Actions\EditAction::make(),

@@ -21,7 +21,9 @@ class Device extends Model
     protected $fillable = [
         'name',
         'type',
+        'capabilities',
         'mqtt_topic',
+        'status_topic',
         'status',
         'last_seen_at',
     ];
@@ -32,9 +34,38 @@ class Device extends Model
     protected function casts(): array
     {
         return [
+            'capabilities' => 'array',
             'status' => 'array',
             'last_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return array{commands: array<string, array<string, mixed>>}
+     */
+    public function resolvedCapabilities(): array
+    {
+        return \App\Support\DeviceCapabilityCatalog::normalize($this->capabilities, (string) $this->type);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function commandNames(): array
+    {
+        return \App\Support\DeviceCapabilityCatalog::commandNames($this->resolvedCapabilities());
+    }
+
+    /**
+     * Topic de statut : champ dédié, sinon mqtt_topic + /status.
+     */
+    public function resolvedStatusTopic(): string
+    {
+        if (filled($this->status_topic)) {
+            return (string) $this->status_topic;
+        }
+
+        return rtrim((string) $this->mqtt_topic, '/').'/status';
     }
 
     public function isOnline(?Carbon $now = null): bool

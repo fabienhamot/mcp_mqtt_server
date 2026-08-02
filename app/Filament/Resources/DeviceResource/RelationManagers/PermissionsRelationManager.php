@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\DeviceResource\RelationManagers;
 
 use App\Enums\DisplayAction;
+use App\Models\Device;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -26,10 +27,17 @@ class PermissionsRelationManager extends RelationManager
                     ->preload()
                     ->required(),
                 Forms\Components\CheckboxList::make('allowed_actions')
-                    ->label('Actions autorisées')
-                    ->options(collect(DisplayAction::controllableValues())->mapWithKeys(
-                        fn (string $v) => [$v => $v]
-                    )->all())
+                    ->label('Commandes autorisées')
+                    ->options(function (): array {
+                        /** @var Device|null $device */
+                        $device = $this->getOwnerRecord();
+                        $names = $device?->commandNames() ?? [];
+                        if ($names === []) {
+                            $names = DisplayAction::controllableValues();
+                        }
+
+                        return collect($names)->mapWithKeys(fn (string $v) => [$v => $v])->all();
+                    })
                     ->required()
                     ->columns(2),
             ]);
@@ -44,7 +52,7 @@ class PermissionsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('allowed_actions')
                     ->badge()
                     ->separator(',')
-                    ->label('Actions'),
+                    ->label('Commandes'),
                 Tables\Columns\TextColumn::make('updated_at')->since()->label('Maj'),
             ])
             ->headerActions([
