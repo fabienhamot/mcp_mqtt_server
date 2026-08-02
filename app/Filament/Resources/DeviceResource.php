@@ -75,37 +75,73 @@ class DeviceResource extends Resource
                     ->rows(16)
                     ->columnSpanFull()
                     ->formatStateUsing(function (mixed $state, ?Device $record): string {
-                        $data = is_array($state) ? $state : ($record?->capabilities ?? $record?->resolvedCapabilities() ?? DeviceCapabilityCatalog::ledDisplay());
+                        if (is_string($state) && $state !== '') {
+                            $decoded = json_decode($state, true);
+                            $data = is_array($decoded) ? $decoded : [];
+                        } elseif (is_array($state)) {
+                            $data = $state;
+                        } else {
+                            $data = $record?->capabilities
+                                ?? $record?->resolvedCapabilities()
+                                ?? DeviceCapabilityCatalog::ledDisplay();
+                        }
 
                         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                     })
-                    ->dehydrateStateUsing(function (?string $state): ?array {
-                        if ($state === null || trim($state) === '') {
+                    ->dehydrateStateUsing(function (mixed $state): ?array {
+                        // mixed : Filament/Livewire peut renvoyer string OU array — un type ?string provoquait TypeError → 419 « Page Expired ».
+                        if ($state === null || $state === '') {
+                            return null;
+                        }
+                        if (is_array($state)) {
+                            return $state;
+                        }
+                        if (! is_string($state)) {
                             return null;
                         }
                         $decoded = json_decode($state, true);
-                        if (! is_array($decoded)) {
-                            throw new \InvalidArgumentException('Capabilities JSON invalide.');
-                        }
 
-                        return $decoded;
+                        return is_array($decoded) ? $decoded : null;
                     })
                     ->rules([
                         fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
-                            if (! is_string($value) && ! is_array($value)) {
+                            if ($value === null || $value === '') {
                                 return;
                             }
-                            $raw = is_array($value) ? json_encode($value) : $value;
-                            $decoded = json_decode((string) $raw, true);
-                            if (! is_array($decoded)) {
+                            if (is_array($value)) {
+                                return;
+                            }
+                            if (! is_string($value) || ! is_array(json_decode($value, true))) {
                                 $fail('JSON capabilities invalide.');
                             }
                         },
                     ]),
-                Forms\Components\KeyValue::make('status')
+                Forms\Components\Textarea::make('status')
                     ->label('Statut (JSON)')
-                    ->nullable()
-                    ->columnSpanFull(),
+                    ->helperText('État remonté par MQTT / dernières commandes. Édition manuelle possible.')
+                    ->rows(8)
+                    ->columnSpanFull()
+                    ->formatStateUsing(function (mixed $state): string {
+                        if (is_string($state) && $state !== '') {
+                            return $state;
+                        }
+
+                        return json_encode($state ?? new \stdClass(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    })
+                    ->dehydrateStateUsing(function (mixed $state): ?array {
+                        if ($state === null || $state === '') {
+                            return null;
+                        }
+                        if (is_array($state)) {
+                            return $state;
+                        }
+                        if (! is_string($state)) {
+                            return null;
+                        }
+                        $decoded = json_decode($state, true);
+
+                        return is_array($decoded) ? $decoded : null;
+                    }),
                 Forms\Components\DateTimePicker::make('last_seen_at')
                     ->label('Dernière activité')
                     ->disabled()
