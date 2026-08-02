@@ -239,7 +239,14 @@ Optionnel : retirer le mapping `"${MQTT_PUBLIC_PORT:-1883}:1883"` du compose.
 
 ## Listener de statut (optionnel)
 
-Le Pi peut publier son état sur `display/led/+/status` (JSON libre). Pour mettre à jour `devices.status` / `last_seen_at` :
+Le listener met à jour `devices.status` / `last_seen_at` (dashboard online/offline) :
+
+- JSON sur `status_topic` ou `{mqtt_topic}/status` (écrans LED)
+- Tasmota : `tele/{topic}/STATE|SENSOR` (JSON), `tele/{topic}/LWT` (`Online`/`Offline`), `stat/{topic}/POWER`
+
+Matching Tasmota : slug dans `mqtt_topic` (ex. `cmnd/tasmota_XXXXXX/POWER`) ou `status_topic` = `tele/tasmota_XXXXXX/STATE`.
+
+Pour mettre à jour manuellement / debug :
 
 ```bash
 docker compose --profile listeners up -d mqtt-listener

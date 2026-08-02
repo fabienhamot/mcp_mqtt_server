@@ -70,7 +70,7 @@ class DeviceResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('status_topic')
                     ->label('Topic statut (optionnel)')
-                    ->helperText('Par défaut : {mqtt_topic}/status')
+                    ->helperText('Ex. tele/tasmota_XXXXXX/STATE — sinon {mqtt_topic}/status. LWT/POWER détectés via le slug Tasmota.')
                     ->maxLength(255),
                 // Champs virtuels string-only : conversion JSON → array hors Livewire (mutateFormDataBeforeSave)
                 Forms\Components\Textarea::make('capabilities_json')

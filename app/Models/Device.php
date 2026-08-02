@@ -70,6 +70,15 @@ class Device extends Model
 
     public function isOnline(?Carbon $now = null): bool
     {
+        $lwt = $this->status['lwt'] ?? null;
+        if (is_string($lwt) && strcasecmp($lwt, 'Offline') === 0) {
+            return false;
+        }
+
+        if (($this->status['online'] ?? null) === false) {
+            return false;
+        }
+
         if ($this->last_seen_at === null) {
             return false;
         }
@@ -86,7 +95,12 @@ class Device extends Model
      */
     public function connectivityLabel(): string
     {
-        if ($this->last_seen_at === null) {
+        $lwt = $this->status['lwt'] ?? null;
+        if (is_string($lwt) && strcasecmp($lwt, 'Offline') === 0) {
+            return 'offline';
+        }
+
+        if ($this->last_seen_at === null && ($this->status['online'] ?? null) !== true) {
             return 'never_seen';
         }
 
