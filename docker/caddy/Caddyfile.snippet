@@ -4,18 +4,19 @@
 #   docker network create proxy   # une seule fois
 #
 # Caddy doit être sur le même réseau `proxy` (voir son docker-compose).
+#
+# Les header_up X-Forwarded-* sont OBLIGATOIRES pour Laravel (cookies Secure,
+# CSRF / Filament Livewire). Sans eux → 419 « This page has expired ».
 
-led.example.com {
+command.lha.run {
 	encode gzip
 
-	# MCP + API Laravel (OAuth Passport, SSE éventuel)
 	reverse_proxy led-display-web:80 {
-		# Headers utiles pour Laravel derrière TLS
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote_host}
 		header_up X-Real-IP {remote_host}
 
-		# Timeouts longs pour MCP / streaming
 		transport http {
 			read_timeout 120s
 			write_timeout 120s
