@@ -17,6 +17,10 @@ npm-debug.log
 yarn-error.log
 docker/mosquitto/passwd
 /storage/oauth-keys
+/storage/mosquitto/certs/*.crt
+/storage/mosquitto/certs/*.key
+/storage/mosquitto/certs/*.pem
+!/storage/mosquitto/certs/README.md
 /led_display
 database/*.sqlite
 database/*.sqlite-journal

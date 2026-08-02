@@ -197,6 +197,46 @@ php artisan tinker
 
 3. L'agent appelle `ListDevices` puis `DisplaySendText`.
 
+## MQTTS (port 8883)
+
+Le broker expose **1883** (clair, transition / Docker) et **8883** (TLS).
+Laravel (`app`, `mqtt-listener`) reste en **clair interne** : `MQTT_HOST=mqtt` + `MQTT_PORT=1883`.
+
+### 1. Certificats
+
+```bash
+chmod +x docker/mosquitto/generate-certs.sh
+./docker/mosquitto/generate-certs.sh command.lha.run   # hostname = SAN du cert
+```
+
+Production : copier un fullchain/privkey Let’s Encrypt dans `storage/mosquitto/certs/`
+(voir `storage/mosquitto/certs/README.md`).
+
+### 2. Démarrer / recreeer Mosquitto
+
+```bash
+docker compose up -d --force-recreate mqtt
+docker compose logs mqtt --tail=30
+# firewall : ouvrir TCP 8883
+```
+
+### 3. Clients (Tasmota / Pi)
+
+| Réglage | Valeur |
+|---------|--------|
+| Host | même CN/SAN que le cert (ex. `command.lha.run`) |
+| Port | `8883` |
+| TLS / SSL | activé |
+| User / pass | `MQTT_AUTH_*` |
+
+Auto-signé : Tasmota peut exiger le fingerprint du cert ou une option « insecure ».
+Préférer Let’s Encrypt en prod.
+
+### 4. Fermer 1883 sur Internet (après migration)
+
+Firewall : n’autoriser plus 1883 depuis l’extérieur (garder 8883).
+Optionnel : retirer le mapping `"${MQTT_PUBLIC_PORT:-1883}:1883"` du compose.
+
 ## Listener de statut (optionnel)
 
 Le Pi peut publier son état sur `display/led/+/status` (JSON libre). Pour mettre à jour `devices.status` / `last_seen_at` :
@@ -267,4 +307,4 @@ Dockerfile
 
 1. **`laravel/mcp`** — attributs `#[Name]`, `#[Description]`, annotations tools (`IsReadOnly`, `IsIdempotent`), signature exacte de `Mcp::oauthRoutes()` / middleware Passport : https://laravel.com/docs/mcp
 2. **Passport 13** — trait `HasApiTokens` + interface `OAuthenticatable`, guard `api` driver `passport`
-3. **TLS Mosquitto 8883** — certificats à fournir dans `storage/mosquitto/certs` avant d'activer le listener TLS dans `docker/mosquitto/mosquitto.conf`
+3. **TLS Mosquitto 8883** — `./docker/mosquitto/generate-certs.sh` puis clients en MQTTS ; fermer 1883 public après migration

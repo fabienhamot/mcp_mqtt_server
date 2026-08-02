@@ -70,12 +70,13 @@ services:
     networks:
       - led
 
-  # MQTT : exposé sur l'hôte pour les Pi (pas via Caddy HTTP)
+  # MQTT : 1883 clair (transition / Docker) + 8883 MQTTS
   mqtt:
     image: eclipse-mosquitto:2
     restart: unless-stopped
     ports:
       - "${MQTT_PUBLIC_PORT:-1883}:1883"
+      - "${MQTT_TLS_PUBLIC_PORT:-8883}:8883"
     volumes:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./docker/mosquitto/passwd:/mosquitto/config/passwd:ro
