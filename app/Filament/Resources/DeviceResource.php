@@ -57,11 +57,14 @@ class DeviceResource extends Resource
                             'relay' => DeviceCapabilityCatalog::relayExample(),
                             default => DeviceCapabilityCatalog::empty(),
                         };
-                        $set('capabilities', json_encode($caps, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                        $set(
+                            'capabilities_json',
+                            json_encode($caps, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                        );
                     }),
                 Forms\Components\TextInput::make('mqtt_topic')
                     ->label('Topic MQTT (commandes)')
-                    ->helperText('Ex. display/led/cuisine ou home/salon/relay')
+                    ->helperText('Ex. cmnd/tasmota_XXXXXX/POWER ou display/led/cuisine')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
@@ -69,79 +72,23 @@ class DeviceResource extends Resource
                     ->label('Topic statut (optionnel)')
                     ->helperText('Par défaut : {mqtt_topic}/status')
                     ->maxLength(255),
-                Forms\Components\Textarea::make('capabilities')
+                // Champs virtuels string-only : conversion JSON → array hors Livewire (mutateFormDataBeforeSave)
+                Forms\Components\Textarea::make('capabilities_json')
                     ->label('Capabilities (JSON)')
-                    ->helperText('Catalogue commands + params + payload templates ({{param}}, {{param?}}, {{param|default}}).')
+                    ->helperText('Catalogue commands + params + payload. Toujours du texte JSON (pas de conversion Livewire).')
                     ->rows(16)
+                    ->required()
                     ->columnSpanFull()
-                    ->formatStateUsing(function (mixed $state, ?Device $record): string {
-                        if (is_string($state) && $state !== '') {
-                            $decoded = json_decode($state, true);
-                            $data = is_array($decoded) ? $decoded : [];
-                        } elseif (is_array($state)) {
-                            $data = $state;
-                        } else {
-                            $data = $record?->capabilities
-                                ?? $record?->resolvedCapabilities()
-                                ?? DeviceCapabilityCatalog::ledDisplay();
-                        }
-
-                        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                    })
-                    ->dehydrateStateUsing(function (mixed $state): ?array {
-                        // mixed : Filament/Livewire peut renvoyer string OU array — un type ?string provoquait TypeError → 419 « Page Expired ».
-                        if ($state === null || $state === '') {
-                            return null;
-                        }
-                        if (is_array($state)) {
-                            return $state;
-                        }
-                        if (! is_string($state)) {
-                            return null;
-                        }
-                        $decoded = json_decode($state, true);
-
-                        return is_array($decoded) ? $decoded : null;
-                    })
-                    ->rules([
-                        fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
-                            if ($value === null || $value === '') {
-                                return;
-                            }
-                            if (is_array($value)) {
-                                return;
-                            }
-                            if (! is_string($value) || ! is_array(json_decode($value, true))) {
-                                $fail('JSON capabilities invalide.');
-                            }
-                        },
-                    ]),
-                Forms\Components\Textarea::make('status')
+                    ->default(fn (): string => json_encode(
+                        DeviceCapabilityCatalog::ledDisplay(),
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    )),
+                Forms\Components\Textarea::make('status_json')
                     ->label('Statut (JSON)')
-                    ->helperText('État remonté par MQTT / dernières commandes. Édition manuelle possible.')
+                    ->helperText('État MQTT / dernières commandes.')
                     ->rows(8)
                     ->columnSpanFull()
-                    ->formatStateUsing(function (mixed $state): string {
-                        if (is_string($state) && $state !== '') {
-                            return $state;
-                        }
-
-                        return json_encode($state ?? new \stdClass(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                    })
-                    ->dehydrateStateUsing(function (mixed $state): ?array {
-                        if ($state === null || $state === '') {
-                            return null;
-                        }
-                        if (is_array($state)) {
-                            return $state;
-                        }
-                        if (! is_string($state)) {
-                            return null;
-                        }
-                        $decoded = json_decode($state, true);
-
-                        return is_array($decoded) ? $decoded : null;
-                    }),
+                    ->default('{}'),
                 Forms\Components\DateTimePicker::make('last_seen_at')
                     ->label('Dernière activité')
                     ->disabled()
