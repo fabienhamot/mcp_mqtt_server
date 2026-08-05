@@ -118,8 +118,9 @@ Accessible uniquement aux users `is_admin=true` (compte seed : `admin@led-displa
 |---------|---------|
 | Dashboard | Stats devices (online / offline / never seen) + tableau de statut |
 | Dispositifs | CRUD + capabilities JSON + commande générique MQTT + permissions |
-| Utilisateurs | CRUD + flag admin |
-| Tokens MCP | Créer / révoquer des personal access tokens Passport |
+| Utilisateurs | CRUD + onglets Profil / Mot de passe + tokens API par user |
+| Mon profil | Menu utilisateur (coin) → profil + changement mot de passe |
+| Tokens MCP | Vue globale + création par utilisateur (onglet Tokens sur fiche user) |
 | Logs | Historique des commandes |
 
 ### Gateway MQTT générique
@@ -171,6 +172,23 @@ php artisan device:grant agent@led-display.local 1 --actions=text,image,color,cl
 ```
 
 API REST (Bearer Passport) :
+
+**Mobile / utilisateur** (`auth:api`) :
+
+- `GET /api/me` — profil
+- `PATCH /api/me` — modifier nom / email
+- `PUT /api/me/password` — `{ "current_password", "password", "password_confirmation" }`
+- `GET /api/me/tokens` — tokens Passport actifs
+- `POST /api/me/tokens` — `{ "name": "iPhone" }` → `access_token` (affiché une fois)
+- `DELETE /api/me/tokens/{id}` — révoquer un token
+- `GET /api/me/devices` — devices accessibles + capabilities + online/offline
+- `GET /api/me/devices/{id}` — détail device
+- `POST /api/me/devices/{id}/commands` — `{ "command": "power1_on", "params": {} }`
+- `GET /api/me/display-logs?device_id=&limit=20` — historique (devices autorisés)
+- `POST /api/auth/token` — `{ "email", "password", "device_name" }` → Bearer token
+- `POST /api/auth/logout` — révoque le token courant
+
+**Admin** :
 
 - `CRUD /api/devices`
 - `CRUD /api/users` (admin)

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
@@ -32,7 +31,7 @@ class UserController extends Controller
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
             'is_admin' => $validated['is_admin'] ?? false,
         ]);
 
@@ -56,13 +55,9 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['sometimes', Password::defaults()],
+            'password' => ['sometimes', 'confirmed', Password::defaults()],
             'is_admin' => ['sometimes', 'boolean'],
         ]);
-
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
 
         $user->update($validated);
 
