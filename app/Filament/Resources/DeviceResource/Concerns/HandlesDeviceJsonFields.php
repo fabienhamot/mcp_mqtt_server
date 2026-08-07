@@ -19,10 +19,17 @@ trait HandlesDeviceJsonFields
                 null,
                 (string) ($data['type'] ?? 'led_display')
             );
+        } else {
+            $capabilities = DeviceCapabilityCatalog::normalize(
+                $capabilities,
+                (string) ($data['type'] ?? 'generic')
+            );
         }
 
+        $data['status_items'] = $capabilities['status_items'];
+
         $data['capabilities_json'] = json_encode(
-            $capabilities,
+            ['commands' => $capabilities['commands']],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
@@ -43,17 +50,23 @@ trait HandlesDeviceJsonFields
      */
     protected function extractJsonFields(array $data): array
     {
-        $data['capabilities'] = $this->decodeJsonObject(
+        $capabilities = $this->decodeJsonObject(
             $data['capabilities_json'] ?? null,
             'Capabilities'
         );
+
+        $capabilities['status_items'] = DeviceCapabilityCatalog::normalizeStatusItems(
+            $data['status_items'] ?? []
+        );
+
+        $data['capabilities'] = $capabilities;
         $data['status'] = $this->decodeJsonObject(
             $data['status_json'] ?? null,
             'Statut',
             allowNull: true
         );
 
-        unset($data['capabilities_json'], $data['status_json']);
+        unset($data['capabilities_json'], $data['status_json'], $data['status_items']);
 
         return $data;
     }

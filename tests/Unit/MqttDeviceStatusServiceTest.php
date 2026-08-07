@@ -111,6 +111,59 @@ class MqttDeviceStatusServiceTest extends TestCase
         $this->assertTrue($device->isOnline());
     }
 
+    public function test_status_items_map_shelly_input(): void
+    {
+        $device = Device::query()->create([
+            'name' => 'Garage',
+            'type' => 'relay',
+            'mqtt_topic' => 'shelly1minig3-34b7da8ea7fc/rpc',
+            'status_topic' => null,
+            'status' => [],
+            'capabilities' => [
+                'commands' => [
+                    'pulse' => [
+                        'description' => 'Impulsion',
+                        'params' => [],
+                        'payload' => 'on',
+                    ],
+                ],
+                'status_items' => [
+                    [
+                        'key' => 'door',
+                        'label' => 'Porte',
+                        'topic' => 'shelly1minig3-34b7da8ea7fc/status/input:0',
+                        'path' => 'state',
+                        'map' => ['true' => 'open', 'false' => 'closed'],
+                    ],
+                    [
+                        'key' => 'online',
+                        'label' => 'MQTT',
+                        'topic' => 'shelly1minig3-34b7da8ea7fc/online',
+                        'path' => null,
+                        'map' => [],
+                    ],
+                ],
+            ],
+        ]);
+
+        $svc = new MqttDeviceStatusService;
+
+        $svc->handle('shelly1minig3-34b7da8ea7fc/status/input:0', '{"id":0,"state":true}');
+        $device->refresh();
+        $this->assertSame('open', $device->status['door']);
+        $this->assertTrue($device->isOnline());
+        $this->assertSame('open', $device->statusItemValues()[0]['value']);
+
+        $svc->handle('shelly1minig3-34b7da8ea7fc/status/input:0', '{"id":0,"state":false}');
+        $device->refresh();
+        $this->assertSame('closed', $device->status['door']);
+
+        $svc->handle('shelly1minig3-34b7da8ea7fc/online', 'false');
+        $device->refresh();
+        $this->assertFalse($device->isOnline());
+        $this->assertSame('closed', $device->status['door']);
+    }
+
     private function makeTasmotaDevice(): Device
     {
         return Device::query()->create([

@@ -33,6 +33,16 @@ class MobileDeviceResource extends JsonResource
             ];
         }
 
+        $statusItems = array_map(static function (array $item): array {
+            return [
+                'key' => $item['key'],
+                'label' => $item['label'],
+                'topic' => $item['topic'],
+                'path' => $item['path'],
+                'map' => $item['map'],
+            ];
+        }, $capabilities['status_items']);
+
         return [
             'id' => $device->id,
             'name' => $device->name,
@@ -42,7 +52,9 @@ class MobileDeviceResource extends JsonResource
             'commands' => array_keys($commands),
             'capabilities' => [
                 'commands' => $commands,
+                'status_items' => $statusItems,
             ],
+            'status_items' => $device->statusItemValues(),
             'connectivity' => $device->connectivityLabel(),
             'last_seen_at' => $device->last_seen_at?->toIso8601String(),
             'status' => $device->status,

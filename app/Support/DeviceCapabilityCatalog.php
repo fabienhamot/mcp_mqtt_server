@@ -3,29 +3,26 @@
 namespace App\Support;
 
 /**
- * Catalogue de commandes MQTT par device.
+ * Catalogue de commandes MQTT + éléments d'état (status_items) par device.
  *
  * Structure :
  * {
- *   "commands": {
- *     "power": {
- *       "description": "Allumer / éteindre",
- *       "retain": false,
- *       "topic": null,
- *       "params": {
- *         "on": {"type": "boolean", "required": true}
- *       },
- *       "payload": {"state": "{{on}}"}
+ *   "commands": { ... },
+ *   "status_items": [
+ *     {
+ *       "key": "door",
+ *       "label": "Porte",
+ *       "topic": "shelly…/status/input:0",
+ *       "path": "state",
+ *       "map": {"true": "open", "false": "closed"}
  *     }
- *   }
+ *   ]
  * }
- *
- * Placeholders payload : {{param}}, {{param|default}}, {{param?}} (omis si vide).
  */
 final class DeviceCapabilityCatalog
 {
     /**
-     * @return array{commands: array<string, array<string, mixed>>}
+     * @return array{commands: array<string, array<string, mixed>>, status_items: list<array<string, mixed>>}
      */
     public static function ledDisplay(): array
     {
@@ -82,13 +79,12 @@ final class DeviceCapabilityCatalog
                     ],
                 ],
             ],
+            'status_items' => [],
         ];
     }
 
     /**
-     * Exemple relais MQTT générique.
-     *
-     * @return array{commands: array<string, array<string, mixed>>}
+     * @return array{commands: array<string, array<string, mixed>>, status_items: list<array<string, mixed>>}
      */
     public static function relayExample(): array
     {
@@ -112,25 +108,29 @@ final class DeviceCapabilityCatalog
                     ],
                 ],
             ],
+            'status_items' => [],
         ];
     }
 
     /**
-     * @return array{commands: array<string, array<string, mixed>>}
+     * @return array{commands: array<string, array<string, mixed>>, status_items: list<array<string, mixed>>}
      */
     public static function empty(): array
     {
-        return ['commands' => []];
+        return ['commands' => [], 'status_items' => []];
     }
 
     /**
      * @param  array<string, mixed>|null  $capabilities
-     * @return array{commands: array<string, array<string, mixed>>}
+     * @return array{commands: array<string, array<string, mixed>>, status_items: list<array<string, mixed>>}
      */
     public static function normalize(?array $capabilities, string $type = 'generic'): array
     {
         if ($capabilities !== null && isset($capabilities['commands']) && is_array($capabilities['commands'])) {
-            return ['commands' => $capabilities['commands']];
+            return [
+                'commands' => $capabilities['commands'],
+                'status_items' => self::normalizeStatusItems($capabilities['status_items'] ?? []),
+            ];
         }
 
         return match ($type) {
@@ -141,7 +141,53 @@ final class DeviceCapabilityCatalog
     }
 
     /**
-     * @param  array{commands: array<string, array<string, mixed>>}  $capabilities
+     * @param  mixed  $items
+     * @return list<array{key: string, label: string, topic: string, path: ?string, map: array<string, string>}>
+     */
+    public static function normalizeStatusItems(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $key = trim((string) ($item['key'] ?? ''));
+            $topic = trim((string) ($item['topic'] ?? ''));
+
+            if ($key === '' || $topic === '') {
+                continue;
+            }
+
+            $map = [];
+            if (isset($item['map']) && is_array($item['map'])) {
+                foreach ($item['map'] as $from => $to) {
+                    $map[(string) $from] = (string) $to;
+                }
+            }
+
+            $path = $item['path'] ?? null;
+            $path = is_string($path) && trim($path) !== '' ? trim($path) : null;
+
+            $out[] = [
+                'key' => $key,
+                'label' => trim((string) ($item['label'] ?? $key)) ?: $key,
+                'topic' => $topic,
+                'path' => $path,
+                'map' => $map,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array{commands?: array<string, array<string, mixed>>, status_items?: list<array<string, mixed>>}  $capabilities
      * @return list<string>
      */
     public static function commandNames(array $capabilities): array

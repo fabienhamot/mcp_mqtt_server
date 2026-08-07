@@ -41,6 +41,25 @@ class DevicesStatusTable extends BaseWidget
                     ->label('Dernière vue')
                     ->since()
                     ->placeholder('—'),
+                Tables\Columns\TextColumn::make('status_items_summary')
+                    ->label('États')
+                    ->getStateUsing(function (Device $record): string {
+                        $parts = [];
+                        foreach ($record->statusItemValues() as $item) {
+                            $value = $item['value'];
+                            if ($value === null) {
+                                continue;
+                            }
+                            if (is_bool($value)) {
+                                $value = $value ? 'true' : 'false';
+                            }
+                            $parts[] = $item['label'].': '.$value;
+                        }
+
+                        return implode(' · ', $parts);
+                    })
+                    ->placeholder('—')
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('status.last_command.type')
                     ->label('Dernière cmd')
                     ->badge()

@@ -41,11 +41,40 @@ class Device extends Model
     }
 
     /**
-     * @return array{commands: array<string, array<string, mixed>>}
+     * @return array{commands: array<string, array<string, mixed>>, status_items: list<array<string, mixed>>}
      */
     public function resolvedCapabilities(): array
     {
         return \App\Support\DeviceCapabilityCatalog::normalize($this->capabilities, (string) $this->type);
+    }
+
+    /**
+     * @return list<array{key: string, label: string, topic: string, path: ?string, map: array<string, string>}>
+     */
+    public function resolvedStatusItems(): array
+    {
+        return $this->resolvedCapabilities()['status_items'];
+    }
+
+    /**
+     * Valeurs d'état pour l'UI : [{ key, label, value, raw? }]
+     *
+     * @return list<array{key: string, label: string, value: mixed}>
+     */
+    public function statusItemValues(): array
+    {
+        $status = $this->status ?? [];
+        $out = [];
+
+        foreach ($this->resolvedStatusItems() as $item) {
+            $out[] = [
+                'key' => $item['key'],
+                'label' => $item['label'],
+                'value' => $status[$item['key']] ?? null,
+            ];
+        }
+
+        return $out;
     }
 
     /**

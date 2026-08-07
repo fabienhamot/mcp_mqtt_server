@@ -261,8 +261,25 @@ Le listener met à jour `devices.status` / `last_seen_at` (dashboard online/offl
 
 - JSON sur `status_topic` ou `{mqtt_topic}/status` (écrans LED)
 - Tasmota : `tele/{topic}/STATE|SENSOR` (JSON), `tele/{topic}/LWT` (`Online`/`Offline`), `stat/{topic}/POWER`
+- **Éléments custom** (`capabilities.status_items`) : un ou plusieurs topics par device (ex. Shelly `…/status/input:0` → `status.door`)
 
 Matching Tasmota : slug dans `mqtt_topic` (ex. `cmnd/tasmota_XXXXXX/POWER`) ou `status_topic` = `tele/tasmota_XXXXXX/STATE`.
+
+Exemple `status_items` (Filament → répéteur « Éléments d'état ») :
+
+```json
+[
+  {
+    "key": "door",
+    "label": "Porte",
+    "topic": "shelly1minig3-…/status/input:0",
+    "path": "state",
+    "map": { "true": "open", "false": "closed" }
+  }
+]
+```
+
+API mobile : `status_items: [{ key, label, value }]` + schéma dans `capabilities.status_items`.
 
 Pour mettre à jour manuellement / debug :
 

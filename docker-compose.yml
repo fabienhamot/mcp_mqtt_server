@@ -93,7 +93,12 @@ services:
     env_file:
       - .env
     environment:
+      DB_CONNECTION: pgsql
       DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-led_display}
+      DB_USERNAME: ${DB_USERNAME:-led}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
       MQTT_HOST: mqtt
       MQTT_CLIENT_ID: led-display-listener
       RUN_MIGRATIONS: "false"

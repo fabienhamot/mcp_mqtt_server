@@ -59,8 +59,12 @@ class DeviceResource extends Resource
                         };
                         $set(
                             'capabilities_json',
-                            json_encode($caps, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                            json_encode(
+                                ['commands' => $caps['commands']],
+                                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                            )
                         );
+                        $set('status_items', $caps['status_items'] ?? []);
                     }),
                 Forms\Components\TextInput::make('mqtt_topic')
                     ->label('Topic MQTT (commandes)')
@@ -69,18 +73,53 @@ class DeviceResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
                 Forms\Components\TextInput::make('status_topic')
-                    ->label('Topic statut (optionnel)')
-                    ->helperText('Ex. tele/tasmota_XXXXXX/STATE — sinon {mqtt_topic}/status. LWT/POWER détectés via le slug Tasmota.')
+                    ->label('Topic statut (optionnel, legacy)')
+                    ->helperText('Un seul topic (Tasmota STATE…). Préférer les éléments custom ci-dessous pour plusieurs états.')
                     ->maxLength(255),
+                Forms\Components\Repeater::make('status_items')
+                    ->label('Éléments d\'état (custom)')
+                    ->helperText('Chaque élément écoute un topic MQTT et stocke la valeur dans status.{key}. Ex. porte Shelly : topic …/status/input:0, path=state, map true→open / false→closed.')
+                    ->schema([
+                        Forms\Components\TextInput::make('key')
+                            ->label('Clé')
+                            ->required()
+                            ->maxLength(64)
+                            ->helperText('ex. door, relay, online'),
+                        Forms\Components\TextInput::make('label')
+                            ->label('Libellé')
+                            ->maxLength(255)
+                            ->helperText('Affiché dans l\'app / admin'),
+                        Forms\Components\TextInput::make('topic')
+                            ->label('Topic MQTT')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('path')
+                            ->label('Chemin JSON')
+                            ->maxLength(255)
+                            ->helperText('ex. state, output — vide = payload entier'),
+                        Forms\Components\KeyValue::make('map')
+                            ->label('Mapping valeurs')
+                            ->keyLabel('Brut')
+                            ->valueLabel('Affiché')
+                            ->helperText('ex. true → open, false → closed')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->default([])
+                    ->collapsible()
+                    ->itemLabel(fn (array $state): ?string => ($state['label'] ?? null) ?: ($state['key'] ?? null))
+                    ->addActionLabel('Ajouter un élément d\'état')
+                    ->columnSpanFull(),
                 // Champs virtuels string-only : conversion JSON → array hors Livewire (mutateFormDataBeforeSave)
                 Forms\Components\Textarea::make('capabilities_json')
-                    ->label('Capabilities (JSON)')
-                    ->helperText('Catalogue commands + params + payload. Toujours du texte JSON (pas de conversion Livewire).')
+                    ->label('Capabilities (JSON — commandes)')
+                    ->helperText('Catalogue commands + params + payload. Les status_items se configurent dans le répéteur ci-dessus.')
                     ->rows(16)
                     ->required()
                     ->columnSpanFull()
                     ->default(fn (): string => json_encode(
-                        DeviceCapabilityCatalog::ledDisplay(),
+                        ['commands' => DeviceCapabilityCatalog::ledDisplay()['commands']],
                         JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
                     )),
                 Forms\Components\Textarea::make('status_json')

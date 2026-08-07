@@ -57,7 +57,9 @@ class ListDevicesTool extends Tool
                     'commands' => array_keys($commands),
                     'capabilities' => [
                         'commands' => $commands,
+                        'status_items' => $capabilities['status_items'],
                     ],
+                    'status_items' => $device->statusItemValues(),
                     'connectivity' => $device->connectivityLabel(),
                     'last_seen_at' => $device->last_seen_at?->toIso8601String(),
                     'status' => $device->status,
