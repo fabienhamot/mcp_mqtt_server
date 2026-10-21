@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM php:8.3-fpm-bookworm AS base
+FROM php:8.3.36-fpm-bookworm AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip curl libpq-dev libzip-dev libpng-dev libonig-dev libicu-dev \

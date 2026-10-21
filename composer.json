@@ -12,7 +12,7 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3.36",
         "filament/filament": "^3.3",
         "laravel/framework": "^11.31",
         "laravel/mcp": "^0.9.1",
@@ -72,6 +72,9 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform": {
+            "php": "8.3.36"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
