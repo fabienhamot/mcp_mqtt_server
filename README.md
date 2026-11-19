@@ -10,7 +10,7 @@ Le serveur ne fait **aucun rendu**. Il authentifie, vérifie les permissions, pu
 
 ## Stack
 
-- Laravel 12 / PHP 8.3.36
+- Laravel 12 / PHP 8.3.37
 - [`laravel/mcp`](https://laravel.com/docs/mcp) — tools MCP
 - [`laravel/passport`](https://laravel.com/docs/passport) — OAuth 2.1 pour les agents
 - [`php-mqtt/laravel-client`](https://github.com/php-mqtt/laravel-client) — publication MQTT
