@@ -10,13 +10,14 @@ Le serveur ne fait **aucun rendu**. Il authentifie, vérifie les permissions, pu
 
 ## Stack
 
-- Laravel 11 / PHP 8.3.36
+- Laravel 12 / PHP 8.3.36
 - [`laravel/mcp`](https://laravel.com/docs/mcp) — tools MCP
 - [`laravel/passport`](https://laravel.com/docs/passport) — OAuth 2.1 pour les agents
 - [`php-mqtt/laravel-client`](https://github.com/php-mqtt/laravel-client) — publication MQTT
 - PostgreSQL 16
-- Docker Compose (app PHP-FPM + nginx + Postgres + Mosquitto)
+- Docker Compose (app PHP-FPM + nginx + Postgres + Mosquitto) — **pas de Node en production**
 - GitHub Actions → build/push `ghcr.io`
+- Node.js (dev only, Vite/Tailwind) : **≥ 22.23.4** / **≥ 24.22.1** / **≥ 26.12.1** (CVE-2026-111497 Brotli) — voir `.nvmrc`
 
 ## Contrat MQTT (Raspberry Pi)
 
@@ -163,6 +164,16 @@ php artisan passport:install
 php artisan db:seed
 php artisan serve
 ```
+
+Assets front (Vite, optionnel) — Node patché requis (CVE-2026-111497) :
+
+```bash
+nvm use          # lit .nvmrc → 22.23.4+
+npm install
+npm run dev      # ou npm run build
+```
+
+L’image Docker de production **n’embarque pas Node** : seuls PHP-FPM + nginx servent l’app.
 
 ## Enregistrer un device / permissions
 
